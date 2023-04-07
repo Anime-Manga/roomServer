@@ -90,6 +90,14 @@ require('dotenv').config();
                 })
                 if(action == 'updateTime')
                     alertNewMember(data.idRoom);
+            }else if(action == 'changeSource'){
+                rooms.map(room => {
+                    if(room.id_room == data.idRoom){
+                        room.episode = data.episode
+                    }
+                })
+                
+                alertNewMember(data.idRoom);
             }
         })
 
