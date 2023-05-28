@@ -58,7 +58,7 @@ require('dotenv').config();
 
                 //send confirm registration
                 ws.send(JSON.stringify({action: 'registration', id:clients.get(ws), nickname: data.nickname}))
-                alertNewMember(idRoom)
+                alertBroadcast(idRoom)
 
             }else if(action === 'update'){
                 //console.log('un messagio da inoltrare')
@@ -71,9 +71,8 @@ require('dotenv').config();
                 var room = joinRoom(ws, data);
 
                 console.log(room);
-
                 ws.send(JSON.stringify({action: 'loadVideo', id:clients.get(ws), nickname: data.nickname, episode: room.episode}))
-                alertNewMember(room.id_room)
+                alertBroadcast(room.id_room)
             }else if(action === 'updatePause'){
                 rooms.map(room => {
                     if(room.id_room == data.idRoom){
@@ -81,7 +80,11 @@ require('dotenv').config();
                     }
                 })
 
-                alertNewMember(data.idRoom);
+                alertOtherMember(data.idRoom, clients.get(ws), {
+                    type: 'updatePause',
+                    nickname: data.nickname,
+                    pause: data.pause
+                });
             }else if(action == 'updateTime' || action == 'currentTime'){
                 rooms.map(room => {
                     if(room.id_room == data.idRoom){
@@ -89,7 +92,7 @@ require('dotenv').config();
                     }
                 })
                 if(action == 'updateTime')
-                    alertNewMember(data.idRoom);
+                    alertBroadcast(data.idRoom);
             }else if(action == 'changeSource'){
                 rooms.map(room => {
                     if(room.id_room == data.idRoom){
@@ -97,7 +100,11 @@ require('dotenv').config();
                     }
                 })
                 
-                alertNewMember(data.idRoom);
+                alertOtherMember(data.idRoom, clients.get(ws), {
+                    type: 'changeSource',
+                    nickname: data.nickname,
+                    episode: data.episode
+                });
             }
         })
 
@@ -196,15 +203,26 @@ require('dotenv').config();
 
         return id_room;
     }
-    
-    function alertNewMember(id_room_client){
+
+    function alertBroadcast(id_room_client, message = {}){
         //sent other contacts for room
         const room = rooms.find(element => element.id_room === id_room_client)
-        room.clients.forEach(item =>{
-            const ws = [...clients].find(([key, val]) => val == item.id)[0]
-            const find = room.clients.find(element => element.id === item.id) || null
+        room.clients.forEach(client =>{
+            const ws = [...clients].find(([key, val]) => val == client.id)[0]
+            const find = room.clients.find(element => element.id === client.id) || null
             if(find != null)
-                ws.send(JSON.stringify({action: 'UpdateRoom', room}))
+                ws.send(JSON.stringify({action: 'UpdateRoom', room, message}))
+        })
+    }
+    
+    function alertOtherMember(id_room_client, sender_id, message = {}){
+        //sent other contacts for room
+        const room = rooms.find(element => element.id_room === id_room_client)
+        room.clients.forEach(client =>{
+            const ws = [...clients].find(([key, val]) => val == client.id)[0]
+            const find = room.clients.find(element => element.id === client.id) || null
+            if(find != null && client.id !== sender_id)
+                ws.send(JSON.stringify({action: 'UpdateRoom', room, message}))
         })
     }
 
